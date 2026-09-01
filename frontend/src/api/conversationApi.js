@@ -25,4 +25,14 @@ export const conversationApi = {
     const response = await axiosClient.post(`/ai/conversations/${conversationId}/messages`, { message });
     return response.data;
   },
+
+  extractAction: async (message) => {
+    const response = await axiosClient.post('/ai/actions/extract', { message });
+    return response.data;
+  },
+
+  executeAction: async (payload) => {
+    const response = await axiosClient.post('/ai/actions/execute', payload);
+    return response.data;
+  },
 };

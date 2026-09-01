@@ -13,6 +13,9 @@ const AiChatPage = () => {
   const [newTitle, setNewTitle] = useState('');
   const [showNewModal, setShowNewModal] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeProposal, setActiveProposal] = useState(null);
+  const [actionResult, setActionResult] = useState(null);
+  const [executingAction, setExecutingAction] = useState(false);
 
   const messagesEndRef = useRef(null);
 
@@ -22,7 +25,7 @@ const AiChatPage = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, sending]);
+  }, [messages, sending, activeProposal, actionResult]);
 
   useEffect(() => {
     loadConversations();
@@ -49,6 +52,8 @@ const AiChatPage = () => {
   const selectConversation = async (id) => {
     try {
       setError('');
+      setActiveProposal(null);
+      setActionResult(null);
       const res = await conversationApi.getConversationById(id);
       if (res.success && res.data) {
         setActiveConversation(res.data);
@@ -71,6 +76,8 @@ const AiChatPage = () => {
         setConversations([res.data, ...conversations]);
         setActiveConversation(res.data);
         setMessages([]);
+        setActiveProposal(null);
+        setActionResult(null);
         setNewTitle('');
         setShowNewModal(false);
         setIsSidebarOpen(false);
@@ -96,6 +103,8 @@ const AiChatPage = () => {
         } else {
           setActiveConversation(null);
           setMessages([]);
+          setActiveProposal(null);
+          setActionResult(null);
         }
       }
     } catch (err) {
@@ -110,6 +119,8 @@ const AiChatPage = () => {
     const messageText = inputMessage.trim();
     setInputMessage('');
     setError('');
+    setActiveProposal(null);
+    setActionResult(null);
 
     const tempUserMsg = {
       id: 'temp-' + Date.now(),
@@ -121,6 +132,7 @@ const AiChatPage = () => {
     setSending(true);
 
     try {
+      // 1. Send conversation message
       const res = await conversationApi.sendMessage(activeConversation.id, messageText);
       if (res.success && res.data) {
         setMessages((prev) => [...prev, res.data]);
@@ -129,11 +141,49 @@ const AiChatPage = () => {
           setConversations(updatedList.data);
         }
       }
+
+      // 2. Check for action intent proposal
+      const extractRes = await conversationApi.extractAction(messageText);
+      if (extractRes.success && extractRes.data && extractRes.data.actionType) {
+        setActiveProposal(extractRes.data);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send message to AI assistant.');
     } finally {
       setSending(false);
     }
+  };
+
+  const handleConfirmAction = async () => {
+    if (!activeProposal || executingAction) return;
+
+    try {
+      setExecutingAction(true);
+      setError('');
+
+      const payload = {
+        actionType: activeProposal.actionType,
+        clientPayload: activeProposal.clientPayload,
+        projectPayload: activeProposal.projectPayload,
+        taskPayload: activeProposal.taskPayload,
+        projectId: activeProposal.projectId,
+        confirmed: true,
+      };
+
+      const res = await conversationApi.executeAction(payload);
+      if (res.success && res.data) {
+        setActionResult(res.data);
+        setActiveProposal(null);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to execute proposed AI action');
+    } finally {
+      setExecutingAction(false);
+    }
+  };
+
+  const handleCancelAction = () => {
+    setActiveProposal(null);
   };
 
   const handleKeyDown = (e) => {
@@ -230,7 +280,7 @@ const AiChatPage = () => {
                 {messages.length === 0 && (
                   <div className="chat-welcome">
                     <h3>AI Freelance Engineering Assistant</h3>
-                    <p>Ask anything about your clients, projects, budgets, or task priorities!</p>
+                    <p>Ask questions or issue commands like <em>"Create client Acme Corp"</em> or <em>"Create project Cloud Redesign"</em>!</p>
                   </div>
                 )}
 
@@ -245,6 +295,42 @@ const AiChatPage = () => {
                     <div className="message-content">{renderFormattedContent(msg.content)}</div>
                   </div>
                 ))}
+
+                {/* AI Action Proposal Card */}
+                {activeProposal && (
+                  <div className="action-proposal-card">
+                    <div className="action-card-header">
+                      <span className="action-badge">PROPOSED ACTION: {activeProposal.actionType}</span>
+                    </div>
+                    <div className="action-card-body">
+                      <p className="action-prompt">{activeProposal.confirmationPrompt}</p>
+                      <p className="action-desc"><strong>Details:</strong> {activeProposal.description}</p>
+                    </div>
+                    <div className="action-card-actions">
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={handleConfirmAction}
+                        disabled={executingAction}
+                      >
+                        {executingAction ? 'Executing...' : '✓ Confirm & Create'}
+                      </button>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={handleCancelAction}
+                        disabled={executingAction}
+                      >
+                        ✕ Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Action Execution Result Badge */}
+                {actionResult && (
+                  <div className="action-executed-badge">
+                    <span>✓ {actionResult.message}</span>
+                  </div>
+                )}
 
                 {sending && (
                   <div className="message-bubble assistant-message sending-bubble">
@@ -262,7 +348,7 @@ const AiChatPage = () => {
               <form className="chat-composer" onSubmit={handleSendMessage}>
                 <textarea
                   className="composer-input"
-                  placeholder="Ask anything about your projects, clients, or tasks... (Press Enter to send)"
+                  placeholder="Ask anything or command e.g. 'Create client Acme Corp'... (Press Enter to send)"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
