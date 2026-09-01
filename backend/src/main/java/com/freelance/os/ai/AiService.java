@@ -33,7 +33,7 @@ public class AiService {
     }
 
     public AiResponse chat(String message, UUID userId) {
-        String userContext = aiContextBuilder.buildContext(userId);
+        String userContext = aiContextBuilder.buildContext(userId, message);
         String fullPrompt = aiPromptBuilder.buildPrompt(message, userContext);
         String text = generateResponse(fullPrompt);
         return AiResponse.builder()
@@ -46,7 +46,7 @@ public class AiService {
     }
 
     public String chatWithHistory(java.util.List<com.freelance.os.ai.entity.ConversationMessage> history, String message, UUID userId) {
-        String userContext = aiContextBuilder.buildContext(userId);
+        String userContext = aiContextBuilder.buildContext(userId, message);
         String fullPrompt = aiPromptBuilder.buildConversationPrompt(history, message, userContext);
         return generateResponse(fullPrompt);
     }

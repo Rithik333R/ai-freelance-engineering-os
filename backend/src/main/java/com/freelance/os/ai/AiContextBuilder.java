@@ -1,5 +1,6 @@
 package com.freelance.os.ai;
 
+import com.freelance.os.ai.service.VectorSearchService;
 import com.freelance.os.client.ClientService;
 import com.freelance.os.client.dto.ClientResponse;
 import com.freelance.os.project.ProjectService;
@@ -19,9 +20,23 @@ public class AiContextBuilder {
     private final ClientService clientService;
     private final ProjectService projectService;
     private final TaskService taskService;
+    private final VectorSearchService vectorSearchService;
 
     public String buildContext(UUID userId) {
+        return buildContext(userId, null);
+    }
+
+    public String buildContext(UUID userId, String userQuery) {
         StringBuilder sb = new StringBuilder();
+
+        // Include semantic vector retrieval context if available
+        if (userQuery != null && !userQuery.trim().isEmpty() && vectorSearchService != null) {
+            String semanticContext = vectorSearchService.buildSemanticContext(userId, userQuery);
+            if (semanticContext != null && !semanticContext.trim().isEmpty()) {
+                sb.append(semanticContext).append("\n");
+            }
+        }
+
         sb.append("=== USER APPLICATION CONTEXT ===\n");
 
         // 1. Clients Section

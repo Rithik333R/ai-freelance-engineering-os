@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage';
 import ClientsPage from './pages/ClientsPage';
 import ProjectsPage from './pages/ProjectsPage';
 import TasksPage from './pages/TasksPage';
+import AiChatPage from './pages/AiChatPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
         <Route path="/clients" element={<ClientsPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/tasks" element={<TasksPage />} />
+        <Route path="/ai-chat" element={<AiChatPage />} />
       </Route>
 
       {/* Root Redirection & Fallbacks */}

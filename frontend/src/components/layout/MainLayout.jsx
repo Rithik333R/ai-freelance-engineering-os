@@ -2,14 +2,15 @@ import React from 'react';
 import Navbar from '../common/Navbar';
 import ColdStartNotice from '../common/ColdStartNotice';
 
-const MainLayout = ({ children }) => {
+const MainLayout = ({ children, fluid }) => {
   return (
-    <div>
+    <div className="layout-wrapper">
       <ColdStartNotice />
       <Navbar />
-      <main className="container">{children}</main>
+      <main className={fluid ? 'container-fluid' : 'container'}>{children}</main>
     </div>
   );
 };
 
 export default MainLayout;
+
