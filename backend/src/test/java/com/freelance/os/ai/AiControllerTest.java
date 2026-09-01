@@ -163,7 +163,8 @@ class AiControllerTest {
     @Test
     void testAiService_DirectMissingApiKey_ThrowsCleanAiServiceException() {
         AiContextBuilder mockContextBuilder = org.mockito.Mockito.mock(AiContextBuilder.class);
-        AiService serviceWithNoKey = new AiService("", mockContextBuilder);
+        AiPromptBuilder mockPromptBuilder = org.mockito.Mockito.mock(AiPromptBuilder.class);
+        AiService serviceWithNoKey = new AiService("", mockContextBuilder, mockPromptBuilder);
 
         AiServiceException ex = assertThrows(AiServiceException.class, () ->
                 serviceWithNoKey.chat("Test prompt", UUID.randomUUID())
@@ -174,3 +175,4 @@ class AiControllerTest {
         assertFalse(ex.getMessage().contains("password"));
     }
 }
+
