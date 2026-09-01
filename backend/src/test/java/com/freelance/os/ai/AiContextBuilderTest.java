@@ -68,26 +68,107 @@ class AiContextBuilderTest {
     }
 
     @Test
+    void testBuildContext_CompleteContext_RendersAllMetadataFields() {
+        ClientResponse client = clientService.createClient(ClientRequest.builder()
+                .companyName("Acme Global")
+                .contactEmail("contact@acme.com")
+                .phone("555-0199")
+                .notes("Key enterprise account")
+                .build(), user1Id);
+
+        ProjectResponse project = projectService.createProject(ProjectRequest.builder()
+                .name("E-Commerce Portal")
+                .description("Next-gen e-commerce storefront redesign")
+                .status("IN_PROGRESS")
+                .clientId(client.getId())
+                .budget(new BigDecimal("25000.00"))
+                .startDate(LocalDate.of(2026, 1, 15))
+                .targetEndDate(LocalDate.of(2026, 6, 30))
+                .build(), user1Id);
+
+        taskService.createTask(project.getId(), TaskRequest.builder()
+                .title("Design Database Schema")
+                .description("Create PostgreSQL ERD and Flyway migrations")
+                .status("COMPLETED")
+                .priority("HIGH")
+                .estimatedHours(16)
+                .dueDate(LocalDate.of(2026, 2, 1))
+                .build(), user1Id);
+
+        String context = aiContextBuilder.buildContext(user1Id);
+
+        assertNotNull(context);
+        assertTrue(context.contains("Acme Global"));
+        assertTrue(context.contains("contact@acme.com"));
+        assertTrue(context.contains("555-0199"));
+        assertTrue(context.contains("Key enterprise account"));
+        assertTrue(context.contains("E-Commerce Portal"));
+        assertTrue(context.contains("Next-gen e-commerce storefront redesign"));
+        assertTrue(context.contains("IN_PROGRESS"));
+        assertTrue(context.contains("$25000.00"));
+        assertTrue(context.contains("2026-01-15"));
+        assertTrue(context.contains("2026-06-30"));
+        assertTrue(context.contains("Design Database Schema"));
+        assertTrue(context.contains("Create PostgreSQL ERD and Flyway migrations"));
+        assertTrue(context.contains("COMPLETED"));
+        assertTrue(context.contains("HIGH"));
+        assertTrue(context.contains("16h"));
+        assertTrue(context.contains("2026-02-01"));
+    }
+
+    @Test
+    void testBuildContext_MultipleProjectsAndMultipleTasks() {
+        ClientResponse client = clientService.createClient(ClientRequest.builder()
+                .companyName("Multi Project Client")
+                .build(), user1Id);
+
+        ProjectResponse p1 = projectService.createProject(ProjectRequest.builder()
+                .name("Project Alpha")
+                .status("IN_PROGRESS")
+                .clientId(client.getId())
+                .build(), user1Id);
+
+        ProjectResponse p2 = projectService.createProject(ProjectRequest.builder()
+                .name("Project Beta")
+                .status("PLANNING")
+                .clientId(client.getId())
+                .build(), user1Id);
+
+        taskService.createTask(p1.getId(), TaskRequest.builder().title("P1 Task A").status("TODO").priority("MEDIUM").build(), user1Id);
+        taskService.createTask(p1.getId(), TaskRequest.builder().title("P1 Task B").status("IN_PROGRESS").priority("HIGH").build(), user1Id);
+
+        taskService.createTask(p2.getId(), TaskRequest.builder().title("P2 Task X").status("TODO").priority("LOW").build(), user1Id);
+
+        String context = aiContextBuilder.buildContext(user1Id);
+
+        assertTrue(context.contains("Projects (Total: 2)"));
+        assertTrue(context.contains("Project Alpha"));
+        assertTrue(context.contains("Project Beta"));
+        assertTrue(context.contains("Tasks (Total: 2)"));
+        assertTrue(context.contains("P1 Task A"));
+        assertTrue(context.contains("P1 Task B"));
+        assertTrue(context.contains("Tasks (Total: 1)"));
+        assertTrue(context.contains("P2 Task X"));
+    }
+
+    @Test
     void testBuildContext_ContainsOnlyAuthenticatedUsersData() {
         // User 1 setup
         ClientResponse client1 = clientService.createClient(ClientRequest.builder()
                 .companyName("User1 Alpha Corp")
                 .contactEmail("alpha@user1.com")
-                .phone("111-222-3333")
                 .build(), user1Id);
 
         ProjectResponse project1 = projectService.createProject(ProjectRequest.builder()
                 .name("User1 Alpha Project")
                 .status("IN_PROGRESS")
                 .clientId(client1.getId())
-                .budget(new BigDecimal("15000.00"))
                 .build(), user1Id);
 
         taskService.createTask(project1.getId(), TaskRequest.builder()
                 .title("User1 Alpha Task")
                 .status("TODO")
                 .priority("HIGH")
-                .estimatedHours(10)
                 .build(), user1Id);
 
         // User 2 setup

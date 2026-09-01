@@ -24,64 +24,80 @@ public class AiContextBuilder {
         StringBuilder sb = new StringBuilder();
         sb.append("=== USER APPLICATION CONTEXT ===\n");
 
+        // 1. Clients Section
         List<ClientResponse> clients = clientService.getClientsForUser(userId);
         if (clients.isEmpty()) {
             sb.append("Clients: None\n");
         } else {
-            sb.append("Clients (").append(clients.size()).append("):\n");
+            sb.append("Clients (Total: ").append(clients.size()).append("):\n");
             for (ClientResponse client : clients) {
-                sb.append(" - Client ID: ").append(client.getId())
-                  .append(", Company Name: ").append(client.getCompanyName());
-                if (client.getContactEmail() != null) {
-                    sb.append(", Email: ").append(client.getContactEmail());
+                sb.append(" - [Client ID: ").append(client.getId()).append("]")
+                  .append(" Company: ").append(client.getCompanyName());
+                if (client.getContactEmail() != null && !client.getContactEmail().isBlank()) {
+                    sb.append(" | Email: ").append(client.getContactEmail());
                 }
-                if (client.getPhone() != null) {
-                    sb.append(", Phone: ").append(client.getPhone());
+                if (client.getPhone() != null && !client.getPhone().isBlank()) {
+                    sb.append(" | Phone: ").append(client.getPhone());
+                }
+                if (client.getNotes() != null && !client.getNotes().isBlank()) {
+                    sb.append(" | Notes: ").append(client.getNotes());
                 }
                 sb.append("\n");
             }
         }
 
+        // 2. Projects & Tasks Section
         List<ProjectResponse> projects = projectService.getProjectsForUser(userId);
         if (projects.isEmpty()) {
             sb.append("Projects: None\n");
         } else {
-            sb.append("Projects (").append(projects.size()).append("):\n");
+            sb.append("Projects (Total: ").append(projects.size()).append("):\n");
             for (ProjectResponse project : projects) {
-                sb.append(" - Project ID: ").append(project.getId())
-                  .append(", Name: ").append(project.getName())
-                  .append(", Status: ").append(project.getStatus());
-                if (project.getClientName() != null) {
-                    sb.append(", Client: ").append(project.getClientName());
+                sb.append(" - [Project ID: ").append(project.getId()).append("]")
+                  .append(" Name: ").append(project.getName())
+                  .append(" | Status: ").append(project.getStatus());
+
+                if (project.getClientName() != null && !project.getClientName().isBlank()) {
+                    sb.append(" | Client: ").append(project.getClientName());
                 }
                 if (project.getBudget() != null) {
-                    sb.append(", Budget: ").append(project.getBudget());
+                    sb.append(" | Budget: $").append(project.getBudget());
                 }
                 if (project.getStartDate() != null) {
-                    sb.append(", Start Date: ").append(project.getStartDate());
+                    sb.append(" | Start Date: ").append(project.getStartDate());
                 }
                 if (project.getTargetEndDate() != null) {
-                    sb.append(", Target End Date: ").append(project.getTargetEndDate());
+                    sb.append(" | Target End Date: ").append(project.getTargetEndDate());
                 }
                 sb.append("\n");
 
+                if (project.getDescription() != null && !project.getDescription().isBlank()) {
+                    sb.append("   Description: ").append(project.getDescription()).append("\n");
+                }
+
+                // Project Tasks
                 List<TaskResponse> tasks = taskService.getTasksByProject(project.getId(), userId);
                 if (tasks.isEmpty()) {
                     sb.append("   Tasks: None\n");
                 } else {
-                    sb.append("   Tasks (").append(tasks.size()).append("):\n");
+                    sb.append("   Tasks (Total: ").append(tasks.size()).append("):\n");
                     for (TaskResponse task : tasks) {
-                        sb.append("   - Task ID: ").append(task.getId())
-                          .append(", Title: ").append(task.getTitle())
-                          .append(", Status: ").append(task.getStatus())
-                          .append(", Priority: ").append(task.getPriority());
+                        sb.append("   - [Task ID: ").append(task.getId()).append("]")
+                          .append(" Title: ").append(task.getTitle())
+                          .append(" | Status: ").append(task.getStatus())
+                          .append(" | Priority: ").append(task.getPriority());
+
                         if (task.getEstimatedHours() != null) {
-                            sb.append(", Estimated Hours: ").append(task.getEstimatedHours());
+                            sb.append(" | Est Hours: ").append(task.getEstimatedHours()).append("h");
                         }
                         if (task.getDueDate() != null) {
-                            sb.append(", Due Date: ").append(task.getDueDate());
+                            sb.append(" | Due Date: ").append(task.getDueDate());
                         }
                         sb.append("\n");
+
+                        if (task.getDescription() != null && !task.getDescription().isBlank()) {
+                            sb.append("     Description: ").append(task.getDescription()).append("\n");
+                        }
                     }
                 }
             }
